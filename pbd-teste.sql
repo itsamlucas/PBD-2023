@@ -27,7 +27,7 @@ BEGIN
     IF OLD.VaProduto != NEW.VaProduto THEN
         SELECT NoProduto INTO produto FROM tbproduto WHERE OLD.VaProduto != NEW.VaProduto;
         INSERT INTO TbLog(DaOperacao, TxLog) VALUES
-        (NOW(), CONCAT('O preço de ', produto, ' foi alterado de ', OLD.VaProduto, ' para ', NEW.VaProduto, '.'));
+        (NOW(), CONCAT('O preço de ', produto, ' foi alterado de R$', OLD.VaProduto, ' para R$', NEW.VaProduto, '.'));
     END IF;
 
     IF OLD.QtEstoque != NEW.QtEstoque THEN
@@ -46,7 +46,7 @@ AFTER DELETE ON tbpedido
 FOR EACH ROW
 BEGIN
     INSERT INTO TbLog(DaOperacao, TxLog) VALUES
-    (NOW(), CONCAT('ID do pedido deletado: ', OLD.CoPedido, '. Valor do pedido deletado: ', OLD.VaPedido));
+    (NOW(), CONCAT('ID do pedido excluído: ', OLD.CoPedido, '. Valor do pedido excluído: ', OLD.VaPedido));
 END; $$
 DELIMITER ;
 
@@ -57,14 +57,14 @@ CREATE TRIGGER tgModificaItemPedido
 AFTER UPDATE ON tbpedidoitem
 FOR EACH ROW
 BEGIN
-    DECLARE novoproduto VARCHAR(50);
-    DECLARE antigoproduto VARCHAR(50);
+    DECLARE novo_produto VARCHAR(50);
+    DECLARE antigo_produto VARCHAR(50);
 
-    IF OLD.CoPedido != NEW.CoPedido THEN
-        SELECT NoPedido INTO antigoproduto FROM tbproduto WHERE CoPedido = OLD.CoPedido;
-        SELECT NoPedido INTO novoproduto FROM tbproduto WHERE CoPedido = NEW.CoPedido; 
+    IF OLD.NoPedido != NEW.NoPedido THEN
+        SELECT NoPedido INTO antigo_produto FROM tbproduto WHERE NoPedido = OLD.NoPedido;
+        SELECT NoPedido INTO novo_produto FROM tbproduto WHERE NoPedido = NEW.NoPedido; 
         INSERT INTO TbLog(DaOperacao, TxLog) VALUES
-        (NOW(), CONCAT('Produto excluído: ', antigoproduto, '. Produto adicionado: ', novoproduto));
+        (NOW(), CONCAT('O produto anterior ', antigo_produto, ' foi substituído pelo novo produto ', novo_produto, ' no pedido ', NEW.CoPedido, '.'));
     END IF;
 END; $$
 DELIMITER ;
