@@ -1,52 +1,70 @@
 -- PRIMEIRA QUESTÃO. 
 
-CREATE TRIGGER estoque_abaixo_minimo
-AFTER UPDATE ON TbProduto
+DELIMITER $$
+CREATE TRIGGER tgEstoqueMinimo
+AFTER UPDATE ON tbproduto 
 FOR EACH ROW
 BEGIN
-    IF NEW.estoque <= NEW.estoque_minimo THEN
-        INSERT INTO Logs (mensagem) VALUES ('ATENÇÃO: estoque atual de ' || NEW.nome_produto || ' está abaixo da quantidade mínima definida. Providenciar reposição!');
-    END IF;
-END;
+    DECLARE produto VARCHAR(50);
+
+    IF NEW.QtEstoque <= OLD.QtEstoqueMinimo THEN
+        SELECT NoProduto INTO produto FROM tbproduto WHERE NEW.QtEstoque <= OLD.QtEstoqueMinimo;
+        INSERT INTO TbLog(DaOperacao, TxLog) VALUES
+        (NOW(), CONCAT('ATENÇÃO: estoque atual de ', produto, ' está abaixo da quantidade mínima definida. Providenciar reposição!'));
+	END IF;
+END; $$
+DELIMITER ;
 
 -- SEGUNDA QUESTÃO. 
 
-CREATE TRIGGER log_alteracao_produto
-AFTER UPDATE ON TbProduto
+DELIMITER $$
+CREATE TRIGGER tgAlteraProduto
+AFTER UPDATE ON tbproduto
 FOR EACH ROW
 BEGIN
-    IF NEW.preco <> OLD.preco THEN
-        INSERT INTO Logs (mensagem) VALUES ('O preço de ' || NEW.nome_produto || ' foi alterado de R$ ' || OLD.preco || ' para R$ ' || NEW.preco || '.');
+    DECLARE produto VARCHAR(50);
+
+    IF OLD.VaProduto != NEW.VaProduto THEN
+        SELECT NoProduto INTO produto FROM tbproduto WHERE OLD.VaProduto != NEW.VaProduto;
+        INSERT INTO TbLog(DaOperacao, TxLog) VALUES
+        (NOW(), CONCAT('O preço de ', produto, ' foi alterado de ', OLD.VaProduto, ' para ', NEW.VaProduto, '.'));
     END IF;
-    
-    IF NEW.estoque <> OLD.estoque THEN
-        INSERT INTO Logs (mensagem) VALUES ('O estoque de ' || NEW.nome_produto || ' foi alterado de ' || OLD.estoque || ' unidades para ' || NEW.estoque || ' unidades.');
+
+    IF OLD.QtEstoque != NEW.QtEstoque THEN
+        SELECT NoProduto INTO produto FROM tbproduto WHERE OLD.QtEstoque != NEW.QtEstoque;
+        INSERT INTO TbLog(DaOperacao, TxLog) VALUES
+        (NOW(), CONCAT('O estoque de ', produto, ' foi alterado de ', OLD.QtEstoque, ' unidades para ', NEW.QtEstoque, ' unidades.'));
     END IF;
-END;
+END; $$
+DELIMITER ;
 
 -- TERCEIRA QUESTÃO. 
 
-CREATE TRIGGER registro_exclusao_pedido
-AFTER DELETE ON TbPedidos
+DELIMITER $$
+CREATE TRIGGER tgExcluiPedido
+AFTER DELETE ON tbpedido
 FOR EACH ROW
 BEGIN
-    INSERT INTO Logs (pedido_id, valor) VALUES (OLD.pedido_id, OLD.valor);
-END;
+    INSERT INTO TbLog(DaOperacao, TxLog) VALUES
+    (NOW(), CONCAT('ID do pedido deletado: ', OLD.CoPedido, '. Valor do pedido deletado: ', OLD.VaPedido));
+END; $$
+DELIMITER ;
 
 -- QUARTA QUESTÃO. 
 
 DELIMITER $$
-CREATE TRIGGER tgExcluiProduto
+CREATE TRIGGER tgModificaItemPedido
 AFTER UPDATE ON tbpedidoitem
 FOR EACH ROW
 BEGIN
     DECLARE novoproduto VARCHAR(50);
     DECLARE antigoproduto VARCHAR(50);
+
     IF OLD.CoPedido != NEW.CoPedido THEN
         SELECT NoPedido INTO antigoproduto FROM tbproduto WHERE CoPedido = OLD.CoPedido;
         SELECT NoPedido INTO novoproduto FROM tbproduto WHERE CoPedido = NEW.CoPedido; 
         INSERT INTO TbLog(DaOperacao, TxLog) VALUES
-        (NOW(), CONCAT('Produto excluído:', antigoproduto, '. Produto adicionado:', novoproduto));
+        (NOW(), CONCAT('Produto excluído: ', antigoproduto, '. Produto adicionado: ', novoproduto));
     END IF;
 END; $$
 DELIMITER ;
